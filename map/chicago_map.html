@@ -2,8 +2,11 @@
 <!DOCTYPE html>
 <meta charset="utf-8">
 <style>
+  .background{
+    fill:#fff;
+  }
   #zips {
-    stroke: #fff;
+    stroke: rgb(206, 204, 204);
   }
   .active{
     fill: none;
@@ -13,8 +16,7 @@
 
 <body>
 
-  <div>
-  </div>
+  <div id="map"></div>
 
   <!-- d3 v7 integration -->
   <script src="https://d3js.org/d3.v7.min.js"></script>
@@ -82,15 +84,10 @@
     60654:0.08980395925427638,
     62656:0.07989326636320829}
 
-    var margin = {
-      top: 10,
-      bottom:10,
-      left:10,
-      right:10
-    }
 
-    let width = 960,
-      height = 500;
+
+    let width = 800,
+      height = 800;
       active = d3.select(null);
 
     let projection = d3.geoMercator()
@@ -100,10 +97,19 @@
     let path = d3.geoPath(projection);
     
       
-    let svg = d3.select("body").append("svg")
-      .attr('class', 'center-container')
+    let svg = d3.select("#map").append("svg")
       .attr("width", width)
       .attr("height", height);
+    
+      svg.append("rect")
+      .attr("class", "background")
+      .attr("width", width)
+      .attr("height", height)
+      .on("click", reset)
+
+    let g = svg.append("g");
+
+
 
 
     let geoChicago, chicago;
@@ -114,14 +120,19 @@
     .domain([0, 0.5, 1, 5, 1000])
     .range(colorScheme);
 
-    // function drawZips() {
-    //   svg.append("path")
-    //     .attr("id", "zips-line")
-    //     .datum(topojson.mesh(chicago, chicago, function(a,b){return a!=b}))
-    //     .attr("d", path);
-    // }
+    function drawCameras() {
+      g.selectAll("circle")
+        .data(cameras.map( d => [d.LONGITUDE, d.LATITUDE]) )
+        .enter()
+        .append("circle")
+        .attr("r", 1) 
+        .attr("transform", d => "translate(" + projection(d) + ")")
+        .attr("fill", "red")
+      
+    }
+
     function drawAreas() {
-      svg.selectAll("path")
+      g.selectAll("path")
         .data(geoChicago.features)
         .enter()
         .append("path")
@@ -131,22 +142,29 @@
         .attr("d", d3.geoPath(projection))  
         .on("click", clicked)
     }
+    function drawZips() {
+      g.append("path")
+        .attr("id", "zips-line")
+        .datum(topojson.mesh(chicago, chicago, function(a,b){return a!=b}))
+        .attr("d", d3.geoPath(projection));
+    }
 
     function clicked(event, d) {
-
+      if (d3.select(".background").node() === this) return reset();
       if (active.node() === this) return reset();
 
       active.classed("active", false);
       active = d3.select(this).classed("active", true);
 
-      const [[x1,y1],[x2,y2]] = path.bounds(d)
-      var dx = x2-x1, dy = y2-y1, x = -(x1+x2)/2, y = -(y1+y2)/2;
+      var b = path.bounds(d)
+      var dx = b[1][0]-b[0][0], dy = b[1][1]-b[0][1], x = (b[0][0]+b[1][0])/2, y = (b[1][1]+b[0][1])/2;
       var scale = .9 / Math.max(dx / width, dy / height),
       translate = [width/2 - scale*x , height/2 - scale *y]
 
-      svg.transition()
+      g.transition()
         .duration(750)
-        .attr("transform", "translate(" + translate + ")scale(" + scale + ")");
+        .style("stroke-width", 1.5 / scale + "px")
+        .attr("transform", "translate(" + translate + ")scale(" + scale + ")")
         
     }
 
@@ -154,11 +172,10 @@
         active.classed("active", false);
         active = d3.select(null);
 
-        svg.transition()
+        g.transition()
           .delay(100)
           .duration(750)
-          .attr('transform', 'translate('+10+','+10+')');
-
+          .attr('transform', "")
       }
 
 
@@ -167,8 +184,10 @@
       // load files async; store the values so we can use them later
       chicago = await d3.json("chicago_zips_topojson.json")
       geoChicago = await d3.json("Boundaries - ZIP Codes_geo.json")
-      // drawZips();
+      cameras = await d3.csv("Speed_Camera_Locations.csv")
+      drawCameras();
       drawAreas();
+      drawZips();
 
     }
 
