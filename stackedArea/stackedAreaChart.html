@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+  <meta charset="UTF-8" />
+  <title>Page Title</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <link rel="stylesheet" href="" />
+  <style></style>
+  <script src="https://d3js.org/d3.v7.min.js"></script>
+  <script>
+    let data;
+    function drawChart(camera) {
+      // set the dimensions and margins of the graph
+      var margin = { top: 60, right: 230, bottom: 50, left: 50 },
+        width = 800 - margin.left - margin.right,
+        height = 400 - margin.top - margin.bottom;
+
+      // append the svg object to the body of the page
+      var svg = d3
+        .select("#chart")
+        .append("svg")
+        .attr("width", width + margin.left + margin.right)
+        .attr("height", height + margin.top + margin.bottom)
+        .append("g")
+        .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+      // List of groups = header of the csv files
+      var keys = ["first", "repeat"];
+      // color palette
+      var color = d3.scaleOrdinal().domain(keys).range(d3.schemeSet2);
+      //stack the data?
+      var stackGen = d3.stack().keys(keys);
+
+      var stackedData = stackGen(Object.values(updated));
+      // console.log("stackedData ", stackedData);
+      // Add X axis
+      var range = d3.extent(Object.values(updated), function (d) {
+        return new Date(d.date);
+      });
+      // console.log("range", range);
+      var x = d3.scaleTime().domain(range).range([0, width]);
+      svg
+        .append("g")
+        .attr("transform", "translate(0," + height + ")")
+        .call(d3.axisBottom(x));
+
+      // Add Y axis
+      var y = d3
+        .scaleLinear()
+        .domain([0, data.length / 300])
+        .range([height, 0]);
+      svg.append("g").call(d3.axisLeft(y).ticks(5));
+      // Show the areas
+
+      var areaChart = svg.append("g");
+
+      // Area generator
+      var area = d3
+        .area()
+        .x((d) => {
+          return x(new Date(d.data.date));
+        })
+        .y0(function (d) {
+          // console.log("y ", d, d[0], y(0));
+          return y(d[0]);
+        })
+        .y1(function (d) {
+          return y(d[1]);
+        });
+      areaChart
+        .selectAll("mylayers")
+        .data(stackedData)
+        .enter()
+        .append("path")
+        .attr("class", function (d) {
+          return "myArea " + d.key;
+        })
+        .attr("d", area)
+        .style("fill", function (d) {
+          return color(d.key);
+        });
+    }
+    async function ready() {
+      // load files async; store the values so we can use them later
+      data = await d3.csv("cleaned-csv.csv");
+      // console.log(data.length, data);
+      updated = {};
+      offenders = new Set();
+      var formatDate = d3.timeFormat("%m/%d/%Y");
+      data.forEach((element) => {
+        
+        var datetime = formatDate(new Date(element.issue_date));
+
+        // var date = formatDate(datetime).split(" ")[0];
+        // console.log(datetime);
+        if (updated[datetime]) {
+          let currData = updated[datetime];
+          if (offenders.has(element.license_plate_number)) {
+            currData["repeat"] += 1;
+            updated[datetime] = currData;
+          } else {
+            currData["first"] += 1;
+            updated[datetime] = currData;
+            offenders.add(element.license_plate_number);
+          }
+        } else {
+          if (offenders.has(element.license_plate_number)) {
+            updated[datetime] = {
+              date: datetime,
+              first: 0,
+              repeat: 1,
+            };
+          } else {
+            updated[datetime] = {
+              date: datetime,
+              first: 1,
+              repeat: 0,
+            };
+            offenders.add(element.license_plate_number);
+          }
+        }
+        // console.log('el ', element)
+      });
+
+      // console.log("updated", Object.values(updated));
+      // console.log("offenders", offenders);
+      drawChart();
+    }
+    ready();
+  </script>
+  <body>
+    <div id="chart"></div>
+  </body>
+</html>
