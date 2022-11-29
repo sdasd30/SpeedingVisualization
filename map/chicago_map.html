@@ -1,29 +1,47 @@
 <html>
-<!DOCTYPE html>
+  <!DOCTYPE html>
 <meta charset="utf-8">
-<style>
+  <style>
   .background{
     fill:#fff;
-  }
-  #zips {
-    stroke: rgb(206, 204, 204);
-  }
+    }
+    #zips {
+      stroke: rgb(206, 204, 204);
+    }
   .active{
-    fill: none;
-  }
+      fill: none;
+    }
+    body {
+      display: flex;
+      flex-flow: row nowrap;
+    }
+  </style>
 
-</style>
+  <body>
 
-<body>
+    <div id="map"></div>
+    <div id="stacked">
+      <select onchange="getVal()" name="timeOptions" id="options">
+        <option value="Repeat Offenders">Repeat Offenders</option>
+        <option value="Repeat Offenders Within Past 6 Months">
+          Repeat Offenders Within Past 6 Months
+        </option>
+        <option value="Repeat Offenders Within The Year">
+          Repeat Offenders Within The Year
+        </option>
+        <option value="Repeat Offenders Within The Month">
+          Repeat Offenders Within The Month
+        </option>
+      </select>
+      <div id="chart"></div>
+    </div>
 
-  <div id="map"></div>
+    <!-- d3 v7 integration -->
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <!-- d3 topojson -->
+    <script src="http://d3js.org/topojson.v1.min.js"></script>
 
-  <!-- d3 v7 integration -->
-  <script src="https://d3js.org/d3.v7.min.js"></script>
-  <!-- d3 topojson -->
-  <script src="http://d3js.org/topojson.v1.min.js"></script>
-  
-  <script>
+    <script>
     var map = {60630:4.580018619594385,
     60641:2.606144343302991,
     60628:1.2654764480171246,
@@ -86,117 +104,218 @@
 
 
 
-    let width = 800,
-      height = 800;
+      let width = 800,
+        height = 800;
       active = d3.select(null);
 
     let projection = d3.geoMercator()
-    .scale(width * 90)
-    .center([-87.6298, 41.8781])
-    .translate([width / 2, height / 2]);
-    let path = d3.geoPath(projection);
-    
+        .scale(width * 90)
+        .center([-87.6298, 41.8781])
+        .translate([width / 2, height / 2]);
+      let path = d3.geoPath(projection);
+
       
     let svg = d3.select("#map").append("svg")
-      .attr("width", width)
-      .attr("height", height);
-    
+        .attr("width", width)
+        .attr("height", height);
+
       svg.append("rect")
-      .attr("class", "background")
-      .attr("width", width)
-      .attr("height", height)
+        .attr("class", "background")
+        .attr("width", width)
+        .attr("height", height)
       .on("click", reset)
 
-    let g = svg.append("g");
+      let g = svg.append("g");
 
 
 
 
-    let geoChicago, chicago;
-
-    colorScheme = d3.schemeBlues[5];
+      let geoChicago, chicago;
+      let offenderData;
+      let currTimeScale = "Repeat Offenders";
+      colorScheme = d3.schemeBlues[5];
 
     colorScale = d3.scaleThreshold()
-    .domain([0, 0.5, 1, 5, 1000])
-    .range(colorScheme);
+        .domain([0, 0.5, 1, 5, 1000])
+        .range(colorScheme);
 
-    function drawCameras() {
-      g.selectAll("circle")
-        .data(cameras.map( d => [d.LONGITUDE, d.LATITUDE]) )
-        .enter()
-        .append("circle")
-        .attr("r", 1) 
-        .attr("transform", d => "translate(" + projection(d) + ")")
-        .attr("fill", "red")
-      
-    }
+      function drawCameras() {
+        g.selectAll("circle")
+          .data(
+            cameras.map((d) => {
+              
+              return {
+                pos: [d.LONGITUDE, d.LATITUDE],
+                add: d.ADDRESS,
+              };
+            })
+          )
 
-    function drawAreas() {
-      g.selectAll("path")
-        .data(geoChicago.features)
-        .enter()
-        .append("path")
-        .attr("id", "zips")
+          .enter()
+          .append("circle")
+          .attr("r", 1)
+          .attr("transform", (d) => "translate(" + projection(d.pos) + ")")
+          .attr("fill", "red")
+          .on("click", showStack);
+      }
+
+      function drawAreas() {
+        g.selectAll("path")
+          .data(geoChicago.features)
+          .enter()
+          .append("path")
+          .attr("id", "zips")
         .attr("fill", d => map[d.properties.zip] == null ? "#ccc" : colorScale(map[d.properties.zip]))
-        .attr("stroke", "white")
-        .attr("d", d3.geoPath(projection))  
+          .attr("stroke", "white")
+          .attr("d", d3.geoPath(projection))
         .on("click", clicked)
-    }
-    function drawZips() {
-      g.append("path")
-        .attr("id", "zips-line")
+      }
+      function drawZips() {
+        g.append("path")
+          .attr("id", "zips-line")
         .datum(topojson.mesh(chicago, chicago, function(a,b){return a!=b}))
-        .attr("d", d3.geoPath(projection));
-    }
+          .attr("d", d3.geoPath(projection));
+      }
 
-    function clicked(event, d) {
-      if (d3.select(".background").node() === this) return reset();
-      if (active.node() === this) return reset();
+      function clicked(event, d) {
+        if (d3.select(".background").node() === this) return reset();
+        if (active.node() === this) return reset();
 
-      active.classed("active", false);
-      active = d3.select(this).classed("active", true);
+        active.classed("active", false);
+        active = d3.select(this).classed("active", true);
 
       var b = path.bounds(d)
       var dx = b[1][0]-b[0][0], dy = b[1][1]-b[0][1], x = (b[0][0]+b[1][0])/2, y = (b[1][1]+b[0][1])/2;
       var scale = .9 / Math.max(dx / width, dy / height),
       translate = [width/2 - scale*x , height/2 - scale *y]
 
-      g.transition()
-        .duration(750)
-        .style("stroke-width", 1.5 / scale + "px")
+        g.transition()
+          .duration(750)
+          .style("stroke-width", 1.5 / scale + "px")
         .attr("transform", "translate(" + translate + ")scale(" + scale + ")")
         
-    }
+      }
 
-    function reset() {
+      function reset() {
         active.classed("active", false);
         active = d3.select(null);
 
-        g.transition()
-          .delay(100)
-          .duration(750)
-          .attr('transform', "")
+        g.transition().delay(100).duration(750).attr("transform", "");
+        d3.select("#chart").selectAll("*").remove();
+      }
+      function drawChart(camera, timeScale) {
+        d3.select("#chart").selectAll("*").remove();
+        let graphData = offenderData.filter((d) => {
+          if (camera) {
+            return d.Camera.toLowerCase() == camera.toLowerCase();
+          } else {
+            return d.Camera == "10318 S INDIANAPOLIS";
+          }
+        });
+        console.log('data with given ', graphData)
+        if (timeScale == undefined) {
+          timeScale = "Repeat Offenders";
+        }
+
+        // set the dimensions and margins of the graph
+        var margin = { top: 60, right: 230, bottom: 50, left: 50 },
+          width = 800 - margin.left - margin.right,
+          height = 400 - margin.top - margin.bottom;
+
+        // append the svg object to the body of the page
+        var svg = d3
+          .select("#chart")
+          .append("svg")
+          .attr("width", width + margin.left + margin.right)
+          .attr("height", height + margin.top + margin.bottom)
+          .append("g")
+          .attr(
+            "transform",
+            "translate(" + margin.left + "," + margin.top + ")"
+          );
+
+        // List of groups = header of the csv files
+        var keys = ["New Offenders This Month", timeScale];
+        // color palette
+        var color = d3.scaleOrdinal().domain(keys).range(d3.schemeSet2);
+        //stack the data
+        var stackGen = d3.stack().keys(keys);
+
+        var stackedData = stackGen(graphData);
+
+        // Add X axis
+        var range = d3.extent(graphData, function (d) {
+          return new Date(d.Year, d.Month);
+        });
+        var x = d3.scaleTime().domain(range).range([0, width]);
+        svg
+          .append("g")
+          .attr("transform", "translate(0," + height + ")")
+          .call(d3.axisBottom(x));
+        var yrange = d3.extent(graphData, function (d) {
+          return Number(d["New Offenders This Month"]) + Number(d[timeScale]);
+        });
+
+        // Add Y axis
+        var y = d3.scaleLinear().domain(yrange).range([height, 0]);
+        svg.append("g").call(d3.axisLeft(y).ticks(5));
+        // Show the areas
+
+        var areaChart = svg.append("g");
+
+        // Area generator
+        var area = d3
+          .area()
+          .x((d) => {
+            return x(new Date(d.data.Year, d.data.Month));
+          })
+          .y0(function (d) {
+            return y(d[0]);
+          })
+          .y1(function (d) {
+            return y(d[1]);
+          });
+        areaChart
+          .selectAll("mylayers")
+          .data(stackedData)
+          .enter()
+          .append("path")
+          .attr("class", function (d) {
+            return "myArea " + d.key;
+          })
+          .attr("d", area)
+          .style("fill", function (d) {
+            return color(d.key);
+          });
+      }
+      function showStack(event, d) {
+        console.log("camera clicked: ", d, d.add.slice(0, -15));
+        currCamera = d.add.slice(0, -15);
+        drawChart(d.add.slice(0, -15), currTimeScale);
+      }
+      function getVal() {
+        currTimeScale = document.getElementById("options").value;
+        drawChart(currCamera, currTimeScale);
       }
 
+      async function ready() {
+        // load files async; store the values so we can use them later
+        chicago = await d3.json("chicago_zips_topojson.json");
+        geoChicago = await d3.json("Boundaries - ZIP Codes_geo.json");
+        cameras = await d3.csv("Speed_Camera_Locations.csv");
+        offenderData = await d3.csv("out.csv");
+        drawCameras();
+        drawAreas();
+        drawZips();
+
+      }
+
+      // call the function that draws
+      ready();
 
 
-    async function ready() {
-      // load files async; store the values so we can use them later
-      chicago = await d3.json("chicago_zips_topojson.json")
-      geoChicago = await d3.json("Boundaries - ZIP Codes_geo.json")
-      cameras = await d3.csv("Speed_Camera_Locations.csv")
-      drawCameras();
-      drawAreas();
-      drawZips();
+    </script>
 
-    }
-
-    // call the function that draws
-    ready();
-
-
-  </script>
-
-</body>
+  </body>
 
 </html>
