@@ -8,7 +8,21 @@
   <script src="https://d3js.org/d3.v7.min.js"></script>
   <script>
     let data;
-    function drawChart(camera) {
+    let currCamera = "10318 S INDIANAPOLIS"; //arbitrarily setting this as default feel free to change
+    let currTimeScale = "Repeat Offenders";
+    function drawChart(camera, timeScale) {
+      d3.select("svg").remove();
+      let graphData = data.filter((d) => {
+        if (camera) {
+          return d.Camera == camera;
+        } else {
+          return d.Camera == "10318 S INDIANAPOLIS";
+        }
+      });
+      if (timeScale == undefined) {
+        timeScale = "Repeat Offenders";
+      }
+
       // set the dimensions and margins of the graph
       var margin = { top: 60, right: 230, bottom: 50, left: 50 },
         width = 800 - margin.left - margin.right,
@@ -24,30 +38,29 @@
         .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
 
       // List of groups = header of the csv files
-      var keys = ["first", "repeat"];
+      var keys = ["New Offenders This Month", timeScale];
       // color palette
       var color = d3.scaleOrdinal().domain(keys).range(d3.schemeSet2);
-      //stack the data?
+      //stack the data
       var stackGen = d3.stack().keys(keys);
 
-      var stackedData = stackGen(Object.values(updated));
-      // console.log("stackedData ", stackedData);
+      var stackedData = stackGen(graphData);
+
       // Add X axis
-      var range = d3.extent(Object.values(updated), function (d) {
-        return new Date(d.date);
+      var range = d3.extent(graphData, function (d) {
+        return new Date(d.Year, d.Month);
       });
-      // console.log("range", range);
       var x = d3.scaleTime().domain(range).range([0, width]);
       svg
         .append("g")
         .attr("transform", "translate(0," + height + ")")
         .call(d3.axisBottom(x));
+      var yrange = d3.extent(graphData, function (d) {
+        return Number(d["New Offenders This Month"]) + Number(d[timeScale]);
+      });
 
       // Add Y axis
-      var y = d3
-        .scaleLinear()
-        .domain([0, data.length / 300])
-        .range([height, 0]);
+      var y = d3.scaleLinear().domain(yrange).range([height, 0]);
       svg.append("g").call(d3.axisLeft(y).ticks(5));
       // Show the areas
 
@@ -57,10 +70,9 @@
       var area = d3
         .area()
         .x((d) => {
-          return x(new Date(d.data.date));
+          return x(new Date(d.data.Year, d.data.Month));
         })
         .y0(function (d) {
-          // console.log("y ", d, d[0], y(0));
           return y(d[0]);
         })
         .y1(function (d) {
@@ -81,53 +93,28 @@
     }
     async function ready() {
       // load files async; store the values so we can use them later
-      data = await d3.csv("cleaned-csv.csv");
-      // console.log(data.length, data);
-      updated = {};
-      offenders = new Set();
-      var formatDate = d3.timeFormat("%m/%d/%Y");
-      data.forEach((element) => {
-        
-        var datetime = formatDate(new Date(element.issue_date));
-
-        // var date = formatDate(datetime).split(" ")[0];
-        // console.log(datetime);
-        if (updated[datetime]) {
-          let currData = updated[datetime];
-          if (offenders.has(element.license_plate_number)) {
-            currData["repeat"] += 1;
-            updated[datetime] = currData;
-          } else {
-            currData["first"] += 1;
-            updated[datetime] = currData;
-            offenders.add(element.license_plate_number);
-          }
-        } else {
-          if (offenders.has(element.license_plate_number)) {
-            updated[datetime] = {
-              date: datetime,
-              first: 0,
-              repeat: 1,
-            };
-          } else {
-            updated[datetime] = {
-              date: datetime,
-              first: 1,
-              repeat: 0,
-            };
-            offenders.add(element.license_plate_number);
-          }
-        }
-        // console.log('el ', element)
-      });
-
-      // console.log("updated", Object.values(updated));
-      // console.log("offenders", offenders);
+      data = await d3.csv("out.csv");
       drawChart();
+    }
+    function getVal() {
+      currTimeScale = document.getElementById("options").value;
+      drawChart(currCamera, currTimeScale);
     }
     ready();
   </script>
   <body>
+    <select onchange="getVal()" name="timeOptions" id="options">
+      <option value="Repeat Offenders">Repeat Offenders</option>
+      <option value="Repeat Offenders Within Past 6 Months">
+        Repeat Offenders Within Past 6 Months
+      </option>
+      <option value="Repeat Offenders Within The Year">
+        Repeat Offenders Within The Year
+      </option>
+      <option value="Repeat Offenders Within The Month">
+        Repeat Offenders Within The Month
+      </option>
+    </select>
     <div id="chart"></div>
   </body>
 </html>
