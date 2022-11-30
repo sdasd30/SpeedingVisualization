@@ -6,15 +6,20 @@
     fill:#fff;
     }
     #zips {
-      stroke: rgb(206, 204, 204);
+      stroke: black;
     }
-  .active{
+    #zips-line{
+      fill: beige;
+    }
+   .active{
       fill: none;
     }
     body {
       display: flex;
       flex-flow: row nowrap;
     }
+
+
   </style>
 
   <body>
@@ -101,7 +106,9 @@
     60707:0.05420181929584767,
     60654:0.08980395925427638,
     62656:0.07989326636320829}
-
+    var tip = d3.select("body").append("div")
+        .attr("class", "tooltip")
+        .style("opacity", 0)
 
 
       let width = 800,
@@ -153,20 +160,34 @@
 
           .enter()
           .append("circle")
+          .attr("id", "cameras")
           .attr("r", 1)
           .attr("transform", (d) => "translate(" + projection(d.pos) + ")")
           .attr("fill", "red")
-          .on("click", showStack);
+          .on("click", showStack)
+          .on("mouseover", showTooltip )
+          .on("mousemove", moveTooltip )
+          .on("mouseleave", hideTooltip );
+      }
+      
+      function drawStreets(){
+        g.selectAll("g.streets path")
+          .data(streets.features)
+          .enter()
+          .append("path")
+          .attr("id", "streets")
+          .attr("stroke", "blue")
+          .attr("d", d3.geoPath(projection));
       }
 
       function drawAreas() {
-        g.selectAll("path")
+        g.selectAll("g.zips path")
           .data(geoChicago.features)
           .enter()
           .append("path")
           .attr("id", "zips")
         .attr("fill", d => map[d.properties.zip] == null ? "#ccc" : colorScale(map[d.properties.zip]))
-          .attr("stroke", "white")
+          .attr("stroke", "black")
           .attr("d", d3.geoPath(projection))
         .on("click", clicked)
       }
@@ -186,7 +207,7 @@
 
       var b = path.bounds(d)
       var dx = b[1][0]-b[0][0], dy = b[1][1]-b[0][1], x = (b[0][0]+b[1][0])/2, y = (b[1][1]+b[0][1])/2;
-      var scale = .9 / Math.max(dx / width, dy / height),
+      var scale = .5 / Math.max(dx / width, dy / height),
       translate = [width/2 - scale*x , height/2 - scale *y]
 
         g.transition()
@@ -297,13 +318,47 @@
         currTimeScale = document.getElementById("options").value;
         drawChart(currCamera, currTimeScale);
       }
+      
+  const tooltip = d3.select("#map")
+    .append("div")
+      .style("opacity", 0)
+      .attr("class", "tooltip")
+      .style("position", "absolute")
+      .style("background-color", "black")
+      .style("border-radius", "5px")
+      .style("padding", "10px")
+      .style("color", "white")
+
+  const showTooltip = function(event, d) {
+    tooltip
+      .transition()
+      .duration(200)
+    tooltip
+      .style("opacity", 1)
+      .html("Address: " + d.add)
+      .style("left", (event.x)/2 + "px")
+      .style("top", (event.y)/2+30 + "px")
+  }
+  const moveTooltip = function(event, d) {
+    tooltip
+      .style("left", (event.x)/2 + "px")
+      .style("top", (event.y)/2+10 + "px")
+  }
+  const hideTooltip = function(event, d) {
+    tooltip
+      .transition()
+      .duration(200)
+      .style("opacity", 0)
+  }
 
       async function ready() {
         // load files async; store the values so we can use them later
         chicago = await d3.json("chicago_zips_topojson.json");
+        streets = await d3.json("streets.json")
         geoChicago = await d3.json("Boundaries - ZIP Codes_geo.json");
         cameras = await d3.csv("Speed_Camera_Locations.csv");
         offenderData = await d3.csv("out.csv");
+        drawStreets();
         drawCameras();
         drawAreas();
         drawZips();
