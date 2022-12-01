@@ -110,8 +110,15 @@
       <div id="stacked">
         <div id="zipcodeStats">
           <h2 id="stat1">Number of Violations in each Zipcode</h2>
-          <h3 id="stat2">These violations were detected in the cameras within each zipcode.</h3>
-          <div id="stat3">Each red dot represents a camera. Click on them to see detailed data on new vs repeat offenders</div>
+          <h3 id="stat2">
+          These violations were detected in the cameras within each zipcode.
+        </h3>
+          <h3 id="stat4">
+        </h3>
+        <div id="stat3">
+          Each red dot represents a camera. Click on them to see detailed data
+          on new vs repeat offenders
+        </div>
         <select onchange="getVal()" name="timeOptions" id="options">
           <option value="Repeat Offenders">Repeat Offenders</option>
           <option value="Repeat Offenders Within Past 6 Months">
@@ -263,11 +270,11 @@
 
       function drawStreets() {
         g.selectAll("g.streets path")
-          .data(streets.features)
+          .data(streets)
           .enter()
           .append("path")
           .attr("id", "streets")
-          .attr("stroke", "blue")
+          .attr("stroke", "black")
           .attr("d", d3.geoPath(projection));
       }
 
@@ -287,6 +294,73 @@
           .on("click", clicked);
 
       }
+      function drawLegend(){
+        let legendData = [
+          {
+            color: colorScale(0),
+            value: 0,
+          },
+          {
+            color: colorScale(1),
+            value: 1,
+          },
+          {
+            color: colorScale(2),
+            value: 2,
+          },
+          {
+            color: colorScale(3),
+            value: 3,
+          },
+          {
+            color: colorScale(4),
+            value: 4,
+          },
+          {
+            color: colorScale(5),
+            value: 5,
+          }
+        ];
+        let legendExtent = d3.extent(legendData, (d) => d.value);
+        var g2 = svg
+          .append("g")
+          .attr("id", "legendG")
+          .attr("transform", "translate(" + 100 + ", "+ 100+")");
+        var defs = svg.append("defs");
+        var linearGradient = defs
+          .append("linearGradient")
+          .attr("id", "myGradient");
+        linearGradient
+          .selectAll("stop")
+          .data(legendData)
+          .enter()
+          .append("stop")
+          .attr(
+            "offset",
+            (d) =>
+              ((d.value - legendExtent[0]) /
+                (legendExtent[1] - legendExtent[0])) *
+                100 +
+              "%"
+          )
+          .attr("stop-color", (d) => d.color);
+
+        g2.append("rect")
+          .attr("width", 200)
+          .attr("height", 10)
+          .style("fill", "url(#myGradient)");
+        var xScale = d3.scaleLinear().range([0, 200]).domain(legendExtent);
+        g2.append("g")
+          .call(
+            d3
+              .axisBottom(xScale)
+              .tickSize(20)
+              .tickValues(legendData.map((d) => d.value))
+          )
+          .select(".domain")
+          .remove();
+          g2.append("text").attr("x", 0).attr("y", -10).text("Violations per Capita").style("font-size", "15px").attr("alignment-baseline","middle")
+      }
       function drawZips() {
         g.append("path")
           .attr("id", "zips-line")
@@ -304,16 +378,26 @@
 
         active.classed("active", false);
         active = d3.select(this).classed("active", true);
-        let currZip = d.properties.zip
-        document.getElementById("stat1").innerHTML = "Zipcode: " + d.properties.zip
+        let currZip = d.properties.zip;
+        document.getElementById("stat1").innerHTML =
+          "Zipcode: " + d.properties.zip;
         let totalViolation;
         zipcodeData.map((d) => {
-          if (d.Zipcode == currZip){
-            totalViolation = d.Violations
+          if (d.Zipcode == currZip) {
+            totalViolation = d.Violations;
           }
-        })
-        if (totalViolation){
-          document.getElementById("stat2").innerHTML = "This zipcode has a total of "+ Number(totalViolation) + " Violations."
+        });
+        if (totalViolation) {
+          document.getElementById("stat2").innerHTML =
+            "This zipcode has a total of " +
+            Number(totalViolation) +
+            " Violations.";
+        }
+        document.getElementById("stat3").style.display = "block";
+        d3.select("#legendG").selectAll("*").remove();
+        let perCapita = map[currZip]
+        if (perCapita){
+          document.getElementById("stat4").innerHTML = "The violations per capita ratio is " + (Math.round( perCapita  * 100) / 100)+"."
 
         }
         var b = path.bounds(d);
@@ -537,14 +621,19 @@
       async function ready() {
         // load files async; store the values so we can use them later
         chicago = await d3.json("chicago_zips_topojson.json");
-        streets = await d3.json("streets.json");
+        allStreets = await d3.json("streets.json");
         geoChicago = await d3.json("Boundaries - ZIP Codes_geo.json");
         cameras = await d3.csv("Speed_Camera_Locations.csv");
         offenderData = await d3.csv("out.csv");
         zipcodeData = await d3.csv("zipout.csv")
+        streets = allStreets.features.filter(d =>{
+          c = d.properties.class;
+          return c == 1 || c == 2 || c == 3;
+        })
         drawStreets();
         drawCameras();
         drawAreas();
+        drawLegend();
         drawZips();
       }
 
