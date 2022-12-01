@@ -21,13 +21,14 @@
     #NonIntro {
       display: flex;
       flex-flow: row nowrap;
-      height: 100%;
+      justify-content: center;
     }
     #Intro {
-      display: block;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
       width: 100%;
-      height: 250%;
-      border: solid;
+      /* border: solid; */
     }
     #title {
       font-size: 35pt;
@@ -67,7 +68,17 @@
     }
     #map{
       position: relative;
+      border: solid;
+      margin: 20px;
+      display: flex;
+      padding-left: 50px;
+      padding-bottom: 20px;
     }
+
+    #stat3{
+      color: red;
+    }
+
   </style>
 
   <body>
@@ -86,12 +97,12 @@
         However, that doesn't tell the full story
       </div>
       <img id="MapImg" src="ChicagoMap.PNG" />
-      <div>
+      <div class="story">
         Not all zip codes are equal, have some like zipcode xxxxx where there
         are N violations per capita, while others like xxxxx have no speeding
         cameras
       </div>
-      <div>
+      <div class="story">
         Also, not all cameras in the zipcode are equal. Two cameras within a few
         blocks of each other can have different impacts
       </div>
@@ -104,12 +115,14 @@
         The left camera has been relatively successful at reducing speeding in
         the area, while the right one hasn't
       </div>
+      <h1> Explore the Map </h1>
     </div>
     <div id="NonIntro">
-      <div id="map"></div>
+      <div id="map"> 
+      </div>
       <div id="stacked">
         <div id="zipcodeStats">
-          <h2 id="stat1">Number of Violations in each Zipcode</h2>
+          <h2 id="stat1">Click to see the Number of Violations in each Zipcode</h2>
           <h3 id="stat2">
           These violations were detected in the cameras within each zipcode.
         </h3>
@@ -209,8 +222,8 @@
         .attr("class", "tooltip")
         .style("opacity", 0);
 
-      let width = 700,
-        height = 700;
+      let width = 600,
+        height = 600;
       active = d3.select(null);
 
       let projection = d3
@@ -325,7 +338,7 @@
         var g2 = svg
           .append("g")
           .attr("id", "legendG")
-          .attr("transform", "translate(" + 100 + ", "+ 100+")");
+          .attr("transform", "translate(" + 100 + ", "+ 50 +")");
         var defs = svg.append("defs");
         var linearGradient = defs
           .append("linearGradient")
@@ -428,6 +441,7 @@
         document.getElementById("stat2").innerHTML = "These violations were detected in the cameras within each zipcode."
         document.getElementById("stat3").style.display = "block"
         totalViolation = null;
+        drawLegend();
       }
       function drawChart(camera, timeScale) {
         d3.select("#chart").selectAll("*").remove();
