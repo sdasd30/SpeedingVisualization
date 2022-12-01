@@ -104,6 +104,10 @@
     <div id="NonIntro">
       <div id="map"></div>
       <div id="stacked">
+        <div id="zipcodeStats">
+          <h2 id="stat1">Number of Violations in each Zipcode</h2>
+          <h3 id="stat2">These violations were detected in the cameras within each zipcode.</h3>
+          <div id="stat3">Each red dot represents a camera. Click on them to see detailed data on new vs repeat offenders</div>
         <select onchange="getVal()" name="timeOptions" id="options">
           <option value="Repeat Offenders">Repeat Offenders</option>
           <option value="Repeat Offenders Within Past 6 Months">
@@ -221,7 +225,7 @@
       let g = svg.append("g");
 
       let geoChicago, chicago;
-      let offenderData;
+      let offenderData, zipcodeData;
       let currTimeScale = "Repeat Offenders";
       colorScheme = d3.schemeBlues[5];
 
@@ -254,7 +258,6 @@
       }
 
       function drawStreets() {
-        console.log("drawing streets", streets.features);
         g.selectAll("g.streets path")
           .data(streets.features)
           .enter()
@@ -278,17 +281,7 @@
           .attr("stroke", "black")
           .attr("d", d3.geoPath(projection))
           .on("click", clicked);
-        var colScale = d3
-          .scaleLinear()
-          .domain([0, 10, 15, 20, 25, 100])
-          .range([
-            "#E28672",
-            "#EC93AB",
-            "#CEB1DE",
-            "#95D3F0",
-            "#77EDD9",
-            "#A9FCAA",
-          ]);
+
       }
       function drawZips() {
         g.append("path")
@@ -307,7 +300,18 @@
 
         active.classed("active", false);
         active = d3.select(this).classed("active", true);
+        let currZip = d.properties.zip
+        document.getElementById("stat1").innerHTML = "Zipcode: " + d.properties.zip
+        let totalViolation;
+        zipcodeData.map((d) => {
+          if (d.Zipcode == currZip){
+            totalViolation = d.Violations
+          }
+        })
+        if (totalViolation){
+          document.getElementById("stat2").innerHTML = "This zipcode has a total of "+ Number(totalViolation) + " Violations."
 
+        }
         var b = path.bounds(d);
         var dx = b[1][0] - b[0][0],
           dy = b[1][1] - b[0][1],
@@ -331,9 +335,13 @@
 
         g.transition().delay(100).duration(750).attr("transform", "");
         d3.select("#chart").selectAll("*").remove();
+        document.getElementById("options").style.display = "none";
+        document.getElementById("stat1").innerHTML = "Number of Violations in each Zipcode"
+        document.getElementById("stat2").innerHTML = "These violations were detected in the cameras within each zipcode."
+        document.getElementById("stat3").style.display = "block"
+        totalViolation = none;
       }
       function drawChart(camera, timeScale) {
-        console.log("offender", offenderData);
         d3.select("#chart").selectAll("*").remove();
         let graphData = offenderData.filter((d) => {
           if (camera) {
@@ -342,13 +350,7 @@
             return d.Camera == "10318 S INDIANAPOLIS";
           }
         });
-        let data123 = offenderData.filter((d) => {
-          if (d.Camera.toLowerCase().includes("2080")) {
-            return true;
-          }
-          return false;
-        });
-        console.log("data123: ", data123);
+ 
         console.log("data with given ", graphData);
         if (timeScale == undefined) {
           timeScale = "Repeat Offenders";
@@ -478,6 +480,7 @@
           .style("alignment-baseline", "middle");
       }
       function showStack(event, d) {
+        document.getElementById("options").style.display = "inline-block";
         console.log("camera clicked: ", d, d.add.slice(0, -15));
         currCamera = d.add.slice(0, -15);
         drawChart(d.add.slice(0, -15), currTimeScale);
@@ -498,40 +501,43 @@
         .style("padding", "10px")
         .style("color", "white");
 
-      const showTooltip = function (event, d) {
-        tooltip.transition().duration(200);
+        const showTooltip = function(event, d) {
+    d3.select(this)
+    .style("stroke", "black")
+    .style("stroke-width", 0.1)
+    .attr("r", 2)
+    tooltip
+      .transition()
+      .duration(200)
         tooltip
           .style("opacity", 1)
           .html("Address: " + d.add)
-          .style("left", event.x / 2 + "px")
-          .style("top", event.y / 2 + 30 + "px");
-      };
-      const moveTooltip = function (event, d) {
+      .style("left", (event.x)/2 + "px")
+      .style("top", (event.y)/2+30 + "px")
+  }
+  const moveTooltip = function(event, d) {
         tooltip
-          .style("left", event.x / 2 + "px")
-          .style("top", event.y / 2 + 10 + "px");
-      };
-      const hideTooltip = function (event, d) {
-        tooltip.transition().duration(200).style("opacity", 0);
-      };
+      .style("left", (event.x)/2 + "px")
+      .style("top", (event.y)/2+10 + "px")
+  }
+  const hideTooltip = function(event, d) {
+    d3.select(this)
+    .style("stroke-width", 0)
+    .attr("r", 1)
+    tooltip
+      .transition()
+      .duration(200)
+      .style("opacity", 0)
+  }
 
       async function ready() {
         // load files async; store the values so we can use them later
-        // [chicago, streets, geoChicago, cameras, offenderData] =
-        //   await Promise.all([
-        //     d3.json("chicago_zips_topojson.json"),
-        //     d3.json("streets.json"),
-        //     d3.json("Boundaries - ZIP Codes_geo.json"),
-        //     d3.csv("Speed_Camera_Locations.csv"),
-        //     d3.csv("out.csv"),
-        //   ]);
-        // console.log("streets", streets);
         chicago = await d3.json("chicago_zips_topojson.json");
         streets = await d3.json("streets.json");
         geoChicago = await d3.json("Boundaries - ZIP Codes_geo.json");
         cameras = await d3.csv("Speed_Camera_Locations.csv");
-        console.log("cameras", cameras);
         offenderData = await d3.csv("out.csv");
+        zipcodeData = await d3.csv("zipout.csv")
         drawStreets();
         drawCameras();
         drawAreas();
