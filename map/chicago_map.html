@@ -394,6 +394,10 @@
       .style("color", "white")
 
   const showTooltip = function(event, d) {
+    d3.select(this)
+    .style("stroke", "black")
+    .style("stroke-width", 0.1)
+    .attr("r", 2)
     tooltip
       .transition()
       .duration(200)
@@ -409,6 +413,9 @@
       .style("top", (event.y)/2+10 + "px")
   }
   const hideTooltip = function(event, d) {
+    d3.select(this)
+    .style("stroke-width", 0)
+    .attr("r", 1)
     tooltip
       .transition()
       .duration(200)
