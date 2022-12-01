@@ -269,11 +269,11 @@
 
       function drawStreets() {
         g.selectAll("g.streets path")
-          .data(streets.features)
+          .data(streets)
           .enter()
           .append("path")
           .attr("id", "streets")
-          .attr("stroke", "blue")
+          .attr("stroke", "black")
           .attr("d", d3.geoPath(projection));
       }
 
@@ -625,11 +625,15 @@
       async function ready() {
         // load files async; store the values so we can use them later
         chicago = await d3.json("chicago_zips_topojson.json");
-        streets = await d3.json("streets.json");
+        allStreets = await d3.json("streets.json");
         geoChicago = await d3.json("Boundaries - ZIP Codes_geo.json");
         cameras = await d3.csv("Speed_Camera_Locations.csv");
         offenderData = await d3.csv("out.csv");
         zipcodeData = await d3.csv("zipout.csv")
+        streets = allStreets.features.filter(d =>{
+          c = d.properties.class;
+          return c == 1 || c == 2 || c == 3;
+        })
         drawStreets();
         drawCameras();
         drawAreas();
