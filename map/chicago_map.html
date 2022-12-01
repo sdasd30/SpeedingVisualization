@@ -1,158 +1,236 @@
 <html>
   <!DOCTYPE html>
-<meta charset="utf-8">
+  <meta charset="utf-8" />
   <style>
-  .background{
-    fill:#fff;
+    .background {
+      fill: #fff;
     }
     #zips {
       stroke: black;
     }
-    #zips-line{
+    #zips-line {
       fill: beige;
     }
-   .active{
+    .active {
       fill: none;
     }
-    body {
+    /* body {
+      display: flex;
+      flex-flow: row nowrap;
+    } */
+    #NonIntro {
       display: flex;
       flex-flow: row nowrap;
     }
-    #options{
-      display: none;
+    #Intro {
+      display: block;
+      width: 100%;
+      height: 250%;
+      border: solid;
     }
-    #stat3{
-      display: none;
+    #title {
+      font-size: 35pt;
+      color: darkblue;
+      text-align: center;
+      margin-top: 50px;
     }
-
+    #belowTitleText {
+      text-align: center;
+      font-size: 14pt;
+      width: 80%;
+      margin: 20px 10%;
+    }
+    #LineImg {
+      width: 70%;
+      height: auto;
+      display: block;
+      margin-left: auto;
+      margin-right: auto;
+    }
+    #MapImg {
+      width: 50%;
+      height: auto;
+      display: block;
+      margin-left: auto;
+      margin-right: auto;
+    }
+    #areaImage {
+      width: 45%;
+      height: auto;
+      display: block;
+      margin-left: auto;
+      margin-right: auto;
+    }
+    #areaHolder {
+      display: flex;
+    }
   </style>
 
   <body>
-
-    <div id="map"></div>
-    <div id="stacked">
-      <div id="zipcodeStats">
-        <h2 id="stat1">Number of Violations in each Zipcode</h2>
-        <h3 id="stat2">These violations were detected in the cameras within each zipcode.</h3>
-        <div id="stat3">Each red dot represents a camera. Click on them to see detailed data on new vs repeat offenders</div>
+    <div id="Intro">
+      <div id="title">Are Chicago's Speeding Cameras Effective?</div>
+      <div id="BelowTitleText">
+        Chicago has issued N speeding violations, which leaves the question if
+        the speeding cameras are actually achieving their goal of reducing
+        speeding. To investigate this question, we looked at all speeding
+        tickets given by speeding cameras in the city of Chicago from 2013-2018.
       </div>
-      <select onchange="getVal()" name="timeOptions" id="options">
-        <option value="Repeat Offenders">Repeat Offenders</option>
-        <option value="Repeat Offenders Within Past 6 Months">
-          Repeat Offenders Within Past 6 Months
-        </option>
-        <option value="Repeat Offenders Within The Year">
-          Repeat Offenders Within The Year
-        </option>
-        <option value="Repeat Offenders Within The Month">
-          Repeat Offenders Within The Month
-        </option>
-      </select>
-      <div id="chart"></div>
+      <img id="LineImg" src="ChicagoLineGraph.png" />
+      <div>
+        First, we looked at the number of speeding violations over time and
+        found that there was an initial peak followed by a steady decline.
+        However, that doesn't tell the full story
+      </div>
+      <img id="MapImg" src="ChicagoMap.PNG" />
+      <div>
+        Not all zip codes are equal, have some like zipcode xxxxx where there
+        are N violations per capita, while others like xxxxx have no speeding
+        cameras
+      </div>
+      <div>
+        Also, not all cameras in the zipcode are equal. Two cameras within a few
+        blocks of each other can have different impacts
+      </div>
+
+      <div id="areaHolder">
+        <img id="areaImage" src="2080PershingCamera.PNG" />
+        <img id="areaImage" src="3483SWesternCamera.PNG" />
+      </div>
+      <div>
+        The left camera has been relatively successful at reducing speeding in
+        the area, while the right one hasn't
+      </div>
+    </div>
+    <div id="NonIntro">
+      <div id="map"></div>
+      <div id="stacked">
+        <div id="zipcodeStats">
+          <h2 id="stat1">Number of Violations in each Zipcode</h2>
+          <h3 id="stat2">These violations were detected in the cameras within each zipcode.</h3>
+          <div id="stat3">Each red dot represents a camera. Click on them to see detailed data on new vs repeat offenders</div>
+        <select onchange="getVal()" name="timeOptions" id="options">
+          <option value="Repeat Offenders">Repeat Offenders</option>
+          <option value="Repeat Offenders Within Past 6 Months">
+            Repeat Offenders Within Past 6 Months
+          </option>
+          <option value="Repeat Offenders Within The Year">
+            Repeat Offenders Within The Year
+          </option>
+          <option value="Repeat Offenders Within The Month">
+            Repeat Offenders Within The Month
+          </option>
+        </select>
+        <div id="chart"></div>
+      </div>
     </div>
 
     <!-- d3 v7 integration -->
     <script src="https://d3js.org/d3.v7.min.js"></script>
+
     <!-- d3 topojson -->
     <script src="http://d3js.org/topojson.v1.min.js"></script>
 
     <script>
-    var map = {60630:4.580018619594385,
-    60641:2.606144343302991,
-    60628:1.2654764480171246,
-    60614:1.638268625714024,
-    60637:1.7735330180416886,
-    60610:1.8990802517205818,
-    60622:1.155377228178649,
-    60618:0.8849480880719737,
-    60620:0.9662240151100022,
-    60609:1.0207753966955668,
-    60604:989.3717948717949,
-    60617:0.7414007976071785,
-    60623:0.6032234798047048,
-    60653:1.7072343632253202,
-    60608:0.6174409550999221,
-    60617:0.5850677135260884,
-    60605:4.349030024953715,
-    60629:0.4397283829309377,
-    60634:0.6457580497276306,
-    60076:1.3417640875354377,
-    60632:0.47314934286399396,
-    60636:0.722376630191833,
-    60659:0.893883284382582,
-    60645:0.7836052220738964,
-    60624:0.7560628299778737,
-    60402:0.5226609702051682,
-    60625:0.3361867959847183,
-    60651:0.37604887668690307,
-    60646:1.016397690257625,
-    60613:0.5361438632586848,
-    60660:0.5236768218581067,
-    60620:0.28643714075853144,
-    60612:0.6357725717294025,
-    60656:0.8878690699988941,
-    60611:0.7725284669331122,
-    60649:0.34861280849278586,
-    60632:0.2117222558434292,
-    60605:1.2172583111969733,
-    60625:0.1623518078619829,
-    60619:0.19206808692288196,
-    60631:0.4955604883462819,
-    60642:0.691595265217176,
-    60652:0.33670704902111126,
-    60302:0.41621262037506335,
-    60649:0.236999069733506,
-    60657:0.18842923235862194,
-    60607:0.6701388888888888,
-    60659:0.2578470182607585,
-    60655:0.3414784817077356,
-    60637:0.1582939218777369,
-    60644:0.14829238558052119,
-    60618:0.07610013551101918,
-    60639:0.07596475562393089,
-    60640:0.07856274483317574,
-    60621:0.1196910384307783,
-    60639:0.044066228442943056,
-    60707:0.05420181929584767,
-    60654:0.08980395925427638,
-    62656:0.07989326636320829}
-    var tip = d3.select("body").append("div")
+      var map = {
+        60630: 4.580018619594385,
+        60641: 2.606144343302991,
+        60628: 1.2654764480171246,
+        60614: 1.638268625714024,
+        60637: 1.7735330180416886,
+        60610: 1.8990802517205818,
+        60622: 1.155377228178649,
+        60618: 0.8849480880719737,
+        60620: 0.9662240151100022,
+        60609: 1.0207753966955668,
+        60604: 989.3717948717949,
+        60617: 0.7414007976071785,
+        60623: 0.6032234798047048,
+        60653: 1.7072343632253202,
+        60608: 0.6174409550999221,
+        60617: 0.5850677135260884,
+        60605: 4.349030024953715,
+        60629: 0.4397283829309377,
+        60634: 0.6457580497276306,
+        60076: 1.3417640875354377,
+        60632: 0.47314934286399396,
+        60636: 0.722376630191833,
+        60659: 0.893883284382582,
+        60645: 0.7836052220738964,
+        60624: 0.7560628299778737,
+        60402: 0.5226609702051682,
+        60625: 0.3361867959847183,
+        60651: 0.37604887668690307,
+        60646: 1.016397690257625,
+        60613: 0.5361438632586848,
+        60660: 0.5236768218581067,
+        60620: 0.28643714075853144,
+        60612: 0.6357725717294025,
+        60656: 0.8878690699988941,
+        60611: 0.7725284669331122,
+        60649: 0.34861280849278586,
+        60632: 0.2117222558434292,
+        60605: 1.2172583111969733,
+        60625: 0.1623518078619829,
+        60619: 0.19206808692288196,
+        60631: 0.4955604883462819,
+        60642: 0.691595265217176,
+        60652: 0.33670704902111126,
+        60302: 0.41621262037506335,
+        60649: 0.236999069733506,
+        60657: 0.18842923235862194,
+        60607: 0.6701388888888888,
+        60659: 0.2578470182607585,
+        60655: 0.3414784817077356,
+        60637: 0.1582939218777369,
+        60644: 0.14829238558052119,
+        60618: 0.07610013551101918,
+        60639: 0.07596475562393089,
+        60640: 0.07856274483317574,
+        60621: 0.1196910384307783,
+        60639: 0.044066228442943056,
+        60707: 0.05420181929584767,
+        60654: 0.08980395925427638,
+        62656: 0.07989326636320829,
+      };
+      var tip = d3
+        .select("body")
+        .append("div")
         .attr("class", "tooltip")
-        .style("opacity", 0)
-
+        .style("opacity", 0);
 
       let width = 800,
         height = 800;
       active = d3.select(null);
 
-    let projection = d3.geoMercator()
+      let projection = d3
+        .geoMercator()
         .scale(width * 90)
         .center([-87.6298, 41.8781])
         .translate([width / 2, height / 2]);
       let path = d3.geoPath(projection);
 
-      
-    let svg = d3.select("#map").append("svg")
+      let svg = d3
+        .select("#map")
+        .append("svg")
         .attr("width", width)
         .attr("height", height);
 
-      svg.append("rect")
+      svg
+        .append("rect")
         .attr("class", "background")
         .attr("width", width)
         .attr("height", height)
-      .on("click", reset)
+        .on("click", reset);
 
       let g = svg.append("g");
-
-
-
 
       let geoChicago, chicago;
       let offenderData, zipcodeData;
       let currTimeScale = "Repeat Offenders";
       colorScheme = d3.schemeBlues[5];
 
-    colorScale = d3.scaleThreshold()
+      colorScale = d3
+        .scaleThreshold()
         .domain([0, 0.5, 1, 5, 1000])
         .range(colorScheme);
 
@@ -160,7 +238,6 @@
         g.selectAll("circle")
           .data(
             cameras.map((d) => {
-              
               return {
                 pos: [d.LONGITUDE, d.LATITUDE],
                 add: d.ADDRESS,
@@ -175,12 +252,12 @@
           .attr("transform", (d) => "translate(" + projection(d.pos) + ")")
           .attr("fill", "red")
           .on("click", showStack)
-          .on("mouseover", showTooltip )
-          .on("mousemove", moveTooltip )
-          .on("mouseleave", hideTooltip );
+          .on("mouseover", showTooltip)
+          .on("mousemove", moveTooltip)
+          .on("mouseleave", hideTooltip);
       }
 
-      function drawStreets(){
+      function drawStreets() {
         g.selectAll("g.streets path")
           .data(streets.features)
           .enter()
@@ -196,15 +273,24 @@
           .enter()
           .append("path")
           .attr("id", "zips")
-        .attr("fill", d => map[d.properties.zip] == null ? "#ccc" : colorScale(map[d.properties.zip]))
+          .attr("fill", (d) =>
+            map[d.properties.zip] == null
+              ? "#ccc"
+              : colorScale(map[d.properties.zip])
+          )
           .attr("stroke", "black")
           .attr("d", d3.geoPath(projection))
-        .on("click", clicked)
+          .on("click", clicked);
+
       }
       function drawZips() {
         g.append("path")
           .attr("id", "zips-line")
-        .datum(topojson.mesh(chicago, chicago, function(a,b){return a!=b}))
+          .datum(
+            topojson.mesh(chicago, chicago, function (a, b) {
+              return a != b;
+            })
+          )
           .attr("d", d3.geoPath(projection));
       }
 
@@ -226,23 +312,27 @@
           document.getElementById("stat2").innerHTML = "This zipcode has a total of "+ Number(totalViolation) + " Violations."
 
         }
-        document.getElementById("stat3").style.display = "block"
-      var b = path.bounds(d)
-      var dx = b[1][0]-b[0][0], dy = b[1][1]-b[0][1], x = (b[0][0]+b[1][0])/2, y = (b[1][1]+b[0][1])/2;
-      var scale = .5 / Math.max(dx / width, dy / height),
-      translate = [width/2 - scale*x , height/2 - scale *y]
+        var b = path.bounds(d);
+        var dx = b[1][0] - b[0][0],
+          dy = b[1][1] - b[0][1],
+          x = (b[0][0] + b[1][0]) / 2,
+          y = (b[1][1] + b[0][1]) / 2;
+        var scale = 0.5 / Math.max(dx / width, dy / height),
+          translate = [width / 2 - scale * x, height / 2 - scale * y];
 
         g.transition()
           .duration(750)
           .style("stroke-width", 1.5 / scale + "px")
-        .attr("transform", "translate(" + translate + ")scale(" + scale + ")")
-        
+          .attr(
+            "transform",
+            "translate(" + translate + ")scale(" + scale + ")"
+          );
       }
 
       function reset() {
         active.classed("active", false);
         active = d3.select(null);
-        
+
         g.transition().delay(100).duration(750).attr("transform", "");
         d3.select("#chart").selectAll("*").remove();
         document.getElementById("options").style.display = "none";
@@ -260,7 +350,8 @@
             return d.Camera == "10318 S INDIANAPOLIS";
           }
         });
-        console.log('data with given ', graphData)
+ 
+        console.log("data with given ", graphData);
         if (timeScale == undefined) {
           timeScale = "Repeat Offenders";
         }
@@ -307,6 +398,24 @@
         // Add Y axis
         var y = d3.scaleLinear().domain(yrange).range([height, 0]);
         svg.append("g").call(d3.axisLeft(y).ticks(5));
+        svg
+          .append("text")
+          .attr("class", "y label")
+          .attr("text-anchor", "end")
+          .attr("y", 2)
+          .attr("dy", "-2em")
+          .attr("dx", -50)
+          //.attr("dx", 175)
+          .attr("transform", "rotate(-90)")
+          .text("Number of Speeding Tickets");
+        svg
+          .append("text")
+          .attr("class", "x label")
+          .attr("text-anchor", "end")
+          .attr("x", 275)
+          .attr("y", 325)
+
+          .text("Time");
         // Show the areas
 
         var areaChart = svg.append("g");
@@ -350,10 +459,8 @@
           .attr("height", size)
           .style("fill", function (d) {
             return color(d);
-          })
+          });
 
-
-        
         svg
           .selectAll("mylabels")
           .data(keys)
@@ -362,7 +469,7 @@
           .attr("x", 500 + size * 1.2)
           .attr("y", function (d, i) {
             return 15 + i * (size + 15) + size / 2;
-          }) 
+          })
           .style("fill", function (d) {
             return color(d);
           })
@@ -370,11 +477,11 @@
             return d;
           })
           .attr("text-anchor", "left")
-          .style("alignment-baseline", "middle")
+          .style("alignment-baseline", "middle");
       }
       function showStack(event, d) {
-        console.log("camera clicked: ", d, d.add.slice(0, -15));
         document.getElementById("options").style.display = "inline-block";
+        console.log("camera clicked: ", d, d.add.slice(0, -15));
         currCamera = d.add.slice(0, -15);
         drawChart(d.add.slice(0, -15), currTimeScale);
       }
@@ -383,7 +490,8 @@
         drawChart(currCamera, currTimeScale);
       }
 
-  const tooltip = d3.select("#map")
+      const tooltip = d3
+        .select("#map")
         .append("div")
         .style("opacity", 0)
         .attr("class", "tooltip")
@@ -391,9 +499,9 @@
         .style("background-color", "black")
         .style("border-radius", "5px")
         .style("padding", "10px")
-      .style("color", "white")
+        .style("color", "white");
 
-  const showTooltip = function(event, d) {
+        const showTooltip = function(event, d) {
     d3.select(this)
     .style("stroke", "black")
     .style("stroke-width", 0.1)
@@ -425,7 +533,7 @@
       async function ready() {
         // load files async; store the values so we can use them later
         chicago = await d3.json("chicago_zips_topojson.json");
-        streets = await d3.json("streets.json")
+        streets = await d3.json("streets.json");
         geoChicago = await d3.json("Boundaries - ZIP Codes_geo.json");
         cameras = await d3.csv("Speed_Camera_Locations.csv");
         offenderData = await d3.csv("out.csv");
@@ -434,15 +542,10 @@
         drawCameras();
         drawAreas();
         drawZips();
-
       }
 
       // call the function that draws
       ready();
-
-
     </script>
-
   </body>
-
 </html>
